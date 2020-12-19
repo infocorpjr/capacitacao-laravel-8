@@ -1,0 +1,59 @@
+version: '3'
+
+services:
+  flight_app:
+    build:
+      dockerfile: .docker/dev/Dockerfile
+      context: .
+    container_name: flight_app
+    depends_on:
+      - flight_database
+    networks:
+      - flight-network
+    volumes:
+      - ./:/var/www
+
+  flight_server:
+    image: nginx:alpine
+    container_name: flight_server
+    depends_on:
+      - flight_app
+    networks:
+      - flight-network
+    ports:
+      - 8085:80
+    volumes:
+      - ./:/var/www
+      - ./.docker/dev/nginx/conf.d:/etc/nginx/conf.d/
+
+  flight_database:
+    image: mysql:5.7
+    container_name: flight_database
+    environment:
+      MYSQL_DATABASE: "flight"
+      MYSQL_ROOT_PASSWORD: "flight"
+    volumes:
+      - ./database/mysql/mysql:/var/lib/mysql
+    networks:
+      - flight-network
+    ports:
+      - 3308:3306
+
+  flight_phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: flight_phpmyadmin
+    networks:
+      - flight-network
+    ports:
+      - 8086:80
+    depends_on:
+      - flight_database
+    environment:
+      PMA_HOST: flight_database
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: flight
+
+networks:
+  flight-network:
+    driver: bridge
